@@ -1,0 +1,344 @@
+#include <kipr/botball.h>
+//black 1018
+//white 2681
+//light gray 2625
+//white 2752
+
+// extender up 8221
+// extender down -679
+int gray = 1850;
+int arm = 3;
+int arm_up = 1025;
+int arm_down = 150;
+int extender = 0;
+int extender_first_position = -1840;
+int claw = 0;
+int claw_open = 1730;
+int claw_closed = 582;
+int initial_position = 0;
+int final_position = 1025;
+int x=0; //will be used to hold the current position of the servo
+int xx=0; //will be used to hold the current position of the servo
+int light_gray = 2625;
+int first_building = 650;
+int second_building = 950;
+int third_building = 1300;
+
+
+int main()
+{
+    int rfcliff = get_create_rfcliff_amt();
+    int lfcliff = get_create_lfcliff_amt();
+    int rcliff = get_create_rcliff_amt();
+    int lcliff = get_create_lcliff_amt();
+    printf("Hello World\n");
+    //connect and wait for light sensor
+    create_connect();
+    shut_down_in(118);
+
+
+
+
+    // get claw set in place
+    cmpc(0);
+
+
+
+    clear_motor_position_counter(extender);
+    while (get_motor_position_counter(extender) > extender_first_position)
+    {
+        mav(extender,-300);
+    }
+    ao();
+
+    create_stop();
+    msleep(100);
+
+
+    enable_servos();
+    set_servo_position(arm,531);// get arm set for blw block
+    msleep(100);
+
+    set_servo_position(claw,claw_open);
+
+
+
+
+    create_drive_direct(100,100); //push firefighter and ambulance to tape
+    msleep(3000);
+
+    create_stop();
+    msleep(100);
+
+    create_drive_direct(-100,-100); //drive back to start box
+    //go to the black  line
+    msleep(1800);
+    create_stop();
+    msleep(15000);
+
+    set_create_total_angle(0);
+    while(get_create_total_angle() <93) //turn left to follow black line
+    {
+        create_drive_direct(-90,90);
+    }
+    create_drive_direct(100,100); // drive to black tape
+    msleep(5000);
+    create_stop();
+
+    //follow black line until bumped
+
+    while (get_create_rbump() == 0)
+    {
+        rfcliff = get_create_rfcliff_amt();
+        lfcliff = get_create_lfcliff_amt();
+        printf(" right cliff %d \n left cliff %d \n", get_create_rfcliff_amt(), get_create_lfcliff_amt());
+
+        if ((rfcliff > gray) && (lfcliff > gray))
+        {
+            create_drive_direct(50,50);//if black line is center drive straight
+        }
+        else if (rfcliff < gray)
+        {
+            create_drive_direct(50,00);//if left of center turn right
+        }
+        else
+        {
+            create_drive_direct(00,50);// if right of center turn left
+        }
+    }
+
+
+
+
+    create_stop();
+    msleep(100);
+    //grab blue block
+    int xx = 0;
+    int x = 531;
+
+    while(get_servo_position(arm)>arm_down)
+    {
+        set_servo_position(arm,x);
+        msleep(5);// this number controls the speed of the servo movement
+        x=x-3;// servo position moves 1 click with each iteration of the loop
+    }
+    msleep(1000);
+    // extend to get blue block
+
+
+
+    set_servo_position(claw,claw_closed); // grab blue block
+
+    create_stop();
+    msleep(500);
+
+
+
+    while(get_servo_position(arm)< arm_up)
+    {
+        set_servo_position(arm,xx);
+        msleep(8);// this number controls the speed of the servo movement
+        xx=xx+3;// servo position moves 1 click with each iteration of the loop
+    }
+
+    msleep(1000);
+
+    create_drive_direct(-100,-100);//back up
+    msleep(1500);
+
+    create_drive_direct(100,-100);//turn face blackline
+    msleep(1500);
+
+    create_stop();
+    msleep(500);
+
+    create_drive_direct(100,100);
+    msleep(1500);
+
+    // drive forward to blackline
+    rfcliff = get_create_rfcliff_amt();
+    lfcliff = get_create_lfcliff_amt();
+    lcliff = get_create_lcliff_amt();
+    printf(" right cliff %d \n left cliff %d \n", get_create_rfcliff_amt(), get_create_lfcliff_amt());
+
+    while(1)
+    {
+        if (get_create_rcliff_amt() >2000)
+        {
+            create_drive_direct(200,200);
+        }
+        else
+            break;
+    }
+    create_stop();
+    msleep(100);
+
+    create_drive_direct(100,-100);//turn face blackline
+    msleep(1500);
+
+
+
+    //getting blueblock on first building
+
+    set_create_distance(0);
+
+    while(get_create_distance() < first_building) //stopin front of building
+    {
+
+
+        if (get_create_rfcliff_amt() > gray) // follow the black line to the building
+        {
+            create_drive_direct(50,100);//if black line is center drive straight
+        }
+
+        else if (get_create_rfcliff_amt() < gray)
+        {
+            create_drive_direct(100,50);//if left of center turn right
+        }
+        else
+        {
+            create_drive_direct(50,50);// if right of center turn left
+        }
+
+
+    }
+
+
+
+
+    create_stop();
+    msleep(100);
+
+
+    clear_motor_position_counter(extender); //extend to on top of building
+    while (get_motor_position_counter(0) < 6700 )
+    {
+        mav(extender,800);
+    }
+    ao();
+
+    create_stop();
+    msleep(100);
+
+
+
+
+    while(get_servo_position(arm)>845) // lower servo so blue block is on building
+    {
+        set_servo_position(arm,xx);
+        msleep(8);// this number controls the speed of the servo movement
+        xx=xx-2;// servo position moves 1 click with each iteration of the loop
+    }
+
+    set_servo_position(claw,claw_open); // drop blue block
+    create_stop(100);
+
+
+    while(get_servo_position(arm)< 1215) // raise servo
+    {
+        set_servo_position(arm,xx);
+        msleep(8);// this number controls the speed of the servo movement
+        xx=xx+4;// servo position moves 1 click with each iteration of the loop
+    }
+
+    while(get_create_distance() < second_building) //stopin front of building
+    {
+
+
+        if (get_create_rfcliff_amt() > gray) // follow the black line to the building
+        {
+            create_drive_direct(50,100);//if black line is center drive straight
+        }
+
+        else if (get_create_rfcliff_amt() < gray)
+        {
+            create_drive_direct(100,50);//if left of center turn right
+        }
+        else
+        {
+            create_drive_direct(50,50);// if right of center turn left
+        }
+
+
+    }
+
+    create_stop();
+    msleep(500);
+    while(get_servo_position(arm)> 1125)
+    {
+        set_servo_position(arm,xx);
+        msleep(8);// this number controls the speed of the servo movement
+        xx=xx-4;// servo position moves 1 click with each iteration of the loop
+    }
+
+
+    while (get_motor_position_counter(0) < 9700 )
+    {
+        mav(extender,800);
+    }
+    ao();
+
+    create_stop();
+    msleep(100);
+
+
+
+
+    while(get_servo_position(arm)>950) // lower servo so blue block is on building
+    {
+        set_servo_position(arm,xx);
+        msleep(8);// this number controls the speed of the servo movement
+        xx=xx-3;// servo position moves 1 click with each iteration of the loop
+    }
+
+    msleep(700);
+
+
+    set_servo_position(claw,claw_closed); // drop blue block
+
+    msleep(500);
+
+
+    while(get_servo_position(arm)< 1215) // raise servo
+    {
+        set_servo_position(arm,xx);
+        msleep(8);// this number controls the speed of the servo movement
+        xx=xx+3;// servo position moves 1 click with each iteration of the loop
+    }
+    create_stop();
+    msleep(500);
+
+    create_drive_direct(200,0);
+    msleep(4000);
+
+    create_stop();
+    msleep(100);
+
+    clear_motor_position_counter(extender); //retrat
+    while (get_motor_position_counter(0) > -4500 )
+    {
+        mav(extender,-900);
+    }
+    ao();
+
+    create_stop();
+    msleep(500);
+
+    while(get_servo_position(arm)>arm_down)
+    {
+        set_servo_position(arm,xx);
+        msleep(5);// this number controls the speed of the servo movement
+        xx=xx-3;// servo position moves 1 click with each iteration of the loop
+    }
+    create_stop();
+    msleep(500);
+
+
+    set_servo_position(claw,claw_open);
+    msleep(500);
+
+    create_disconnect();
+    return 0;
+}
+
+
